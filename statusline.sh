@@ -1,83 +1,79 @@
 #!/usr/bin/env bash
-# ditto — Rainbow-Ditto pixel-art statusline for Claude Code
+# ditto — minimal single-file statusline for Claude Code.
 # https://github.com/zyx1121/ditto
+#
+# Ditto pixel-art mascot (16x14 sprite folded 2:1 into half-block glyphs =
+# 16x7 cells, correct aspect ratio, flips horizontally every refresh), plus
+# one status row: model name on the left, ctx / 5h / 7d usage on the right.
+#
+# Requires jq. Terminal width comes from $COLUMNS (Claude Code sets it).
 
 input=$(cat)
 
-# Self-locate so ditto.ans is found wherever this repo lives
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DITTO="${SCRIPT_DIR}/ditto.ans"
+# ---- data (one jq call) ----
+IFS=$'\t' read -r model ctx five week <<<"$(jq -r '
+  [(.model.display_name // ""),
+   (.context_window.used_percentage // ""),
+   (.rate_limits.five_hour.used_percentage // ""),
+   (.rate_limits.seven_day.used_percentage // "")] | @tsv' <<<"$input" 2>/dev/null)"
 
-# --- ANSI helpers ---
-RESET='\033[0m'; BOLD='\033[1m'; DIM='\033[2m'
-BLUE='\033[0;34m'; MAGENTA='\033[0;35m'; CYAN='\033[0;36m'
-GREEN='\033[1;32m'; YELLOW='\033[1;33m'; RED='\033[1;31m'
+COLS=${COLUMNS:-80}
+WIDTH=$((COLS - 4))          # Claude Code reserves ~4 cols of right margin
+[ "$WIDTH" -lt 16 ] && WIDTH=16
 
-pct_color() {
-    local p=$1
-    if [ "$p" -ge 80 ]; then printf '%b' "$RED"
-    elif [ "$p" -ge 50 ]; then printf '%b' "$YELLOW"
-    else printf '%b' "$GREEN"; fi
-}
+# ---- sprite: 2 pre-rendered frames (normal / mirrored), 7 rows each ----
+A=(
+'\033[49m \033[49m \033[49m \033[49m \033[49;38;5;16m▄\033[38;5;16;48;5;189m▀\033[38;5;16;48;5;189m▀\033[49;38;5;16m▄\033[49m \033[49m \033[49;38;5;16m▄\033[49;38;5;16m▄\033[49m \033[49m \033[49m \033[49m \033[0m'
+'\033[49;38;5;16m▄\033[38;5;16;48;5;189m▀\033[38;5;16;48;5;189m▀\033[49;38;5;16m█\033[38;5;16;48;5;182m▀\033[38;5;189;48;5;16m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;16;48;5;182m▀\033[38;5;16;48;5;182m▀\033[49;38;5;189m█\033[38;5;189;48;5;182m▀\033[38;5;16;48;5;182m▀\033[49;38;5;16m▄\033[49m \033[49m \033[0m'
+'\033[49;38;5;16m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;16;48;5;182m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;16;48;5;182m▀\033[49;38;5;16m▄\033[49m \033[0m'
+'\033[49m \033[49;38;5;16m█\033[38;5;182;48;5;189m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;16;48;5;182m▀\033[38;5;16;48;5;182m▀\033[38;5;16;48;5;182m▀\033[38;5;16;48;5;182m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;16m█\033[49m \033[0m'
+'\033[49;38;5;16m█\033[49;38;5;182m█\033[49;38;5;189m█\033[49;38;5;189m█\033[49;38;5;189m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;16;48;5;182m▀\033[38;5;189;48;5;16m▀\033[38;5;182;48;5;16m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;16m█\033[0m'
+'\033[49;38;5;16m▀\033[38;5;182;48;5;16m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;189m█\033[49;38;5;189m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;16m█\033[0m'
+'\033[49m \033[49m \033[49;38;5;16m▀\033[49;38;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[49;38;5;16m▀\033[49;38;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[49;38;5;16m▀\033[49m \033[0m'
+)
+B=(
+'\033[49m \033[49m \033[49m \033[49m \033[49;38;5;16m▄\033[49;38;5;16m▄\033[49m \033[49m \033[49;38;5;16m▄\033[38;5;16;48;5;189m▀\033[38;5;16;48;5;189m▀\033[49;38;5;16m▄\033[49m \033[49m \033[49m \033[49m \033[0m'
+'\033[49m \033[49m \033[49;38;5;16m▄\033[38;5;16;48;5;182m▀\033[38;5;189;48;5;182m▀\033[49;38;5;189m█\033[38;5;16;48;5;182m▀\033[38;5;16;48;5;182m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;189;48;5;16m▀\033[38;5;16;48;5;182m▀\033[49;38;5;16m█\033[38;5;16;48;5;189m▀\033[38;5;16;48;5;189m▀\033[49;38;5;16m▄\033[0m'
+'\033[49m \033[49;38;5;16m▄\033[38;5;16;48;5;182m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;16;48;5;182m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;16m█\033[0m'
+'\033[49m \033[49;38;5;16m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;16;48;5;182m▀\033[38;5;16;48;5;182m▀\033[38;5;16;48;5;182m▀\033[38;5;16;48;5;182m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;182;48;5;189m▀\033[49;38;5;16m█\033[49m \033[0m'
+'\033[49;38;5;16m█\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;182;48;5;16m▀\033[38;5;189;48;5;16m▀\033[38;5;16;48;5;182m▀\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;189m█\033[49;38;5;189m█\033[49;38;5;189m█\033[49;38;5;182m█\033[49;38;5;16m█\033[0m'
+'\033[49;38;5;16m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;182m█\033[49;38;5;189m█\033[49;38;5;189m█\033[49;38;5;182m█\033[49;38;5;182m█\033[38;5;182;48;5;16m▀\033[49;38;5;16m▀\033[0m'
+'\033[49m \033[49;38;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[49;38;5;16m▀\033[49;38;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[38;5;182;48;5;16m▀\033[49;38;5;16m▀\033[49;38;5;16m▀\033[49m \033[49m \033[0m'
+)
 
-# --- Parse Claude Code JSON ---
-project_dir=$(echo "$input" | jq -r '.workspace.project_dir // .workspace.current_dir // .cwd // empty')
-model_name=$(echo "$input" | jq -r '.model.display_name // empty')
-used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+FLIP_FILE="$HOME/.claude/.ditto_flip"
+flip=$(cat "$FLIP_FILE" 2>/dev/null); [ "$flip" = "1" ] || flip=0
+printf '%s' "$((1 - flip))" > "$FLIP_FILE" 2>/dev/null
 
-git_branch=""
-if [ -n "$project_dir" ] && [ -d "$project_dir/.git" ]; then
-    git_branch=$(GIT_OPTIONAL_LOCKS=0 git -C "$project_dir" symbolic-ref --short HEAD 2>/dev/null \
-        || GIT_OPTIONAL_LOCKS=0 git -C "$project_dir" rev-parse --short HEAD 2>/dev/null)
-fi
-
-# --- Build status text ---
-parts=()
-if [ -n "$project_dir" ]; then
-    short_dir=${project_dir/#$HOME/~}
-    if [ -n "$git_branch" ]; then
-        parts+=("$(printf "${BOLD}${BLUE}%s${RESET} ${MAGENTA}(%s)${RESET}" "$short_dir" "$git_branch")")
-    else
-        parts+=("$(printf "${BOLD}${BLUE}%s${RESET}" "$short_dir")")
-    fi
-fi
-[ -n "$model_name" ] && parts+=("$(printf "${CYAN}%s${RESET}" "$model_name")")
-if [ -n "$used_pct" ]; then
-    ctx_int=$(printf '%.0f' "$used_pct")
-    col=$(pct_color "$ctx_int")
-    parts+=("$(printf "ctx:${col}%d%%${RESET}" "$ctx_int")")
-fi
-
-SEP="${DIM} | ${RESET}"
-status=""
-for p in "${parts[@]}"; do
-    [ -z "$status" ] && status="$p" || status="${status}${SEP}${p}"
+N=$((WIDTH / 16))            # each Ditto is 16 cells wide
+[ "$N" -lt 1 ] && N=1
+for r in 0 1 2 3 4 5 6; do
+  [ "$flip" = "1" ] && ln="${B[$r]}" || ln="${A[$r]}"
+  for ((i = 0; i < N; i++)); do printf '%b' "$ln"; done
+  printf '\n'
 done
 
-# --- Ditto mascot rainbow row (rotates one hue step per refresh) ---
-if [ -f "$DITTO" ]; then
-    COLS=${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}
-    N=$((COLS / 32))   # each Ditto = 16 px × 2 chars = 32 chars wide
-    [ "$N" -lt 1 ] && N=1
-    # 6-step hue ring (purple → red-pink → red-orange → orange-yellow → yellow-green → cyan-green)
-    COLORS_M=(182 168 173 221 191 79)
-    COLORS_H=(225 211 216 228 192 122)
-    NCOL=${#COLORS_M[@]}
-    OFFSET_FILE="${HOME}/.claude/.ditto_offset"
-    OFFSET=$(cat "$OFFSET_FILE" 2>/dev/null); OFFSET=${OFFSET:-0}
-    echo $(( (OFFSET + 1) % NCOL )) > "$OFFSET_FILE" 2>/dev/null
-    LINES=()
-    while IFS= read -r ln; do LINES+=("$ln"); done < "$DITTO"
-    for ln in "${LINES[@]}"; do
-        for ((i=0; i<N; i++)); do
-            ci=$(( (i * NCOL / N + OFFSET) % NCOL ))
-            m=${COLORS_M[$ci]}; h=${COLORS_H[$ci]}
-            s="${ln//38;5;182m/38;5;${m}m}"
-            s="${s//38;5;189m/38;5;${h}m}"
-            printf '%s' "$s"
-        done
-        printf '\n'
-    done
-fi
+# ---- status row: model (left) · ctx / 5h / 7d (right) ----
+RESET='\033[0m'; DIM='\033[2m'; CYAN='\033[0;36m'
+GREEN='\033[32m'; YELLOW='\033[33m'; RED='\033[31m'
 
-printf "%b" "$status"
+left_plain="$model"
+left="${CYAN}${model}${RESET}"
+
+right_plain=""; right=""
+add_stat() {   # $1 = label, $2 = raw percentage (may be float or empty)
+  [ -n "$2" ] || return 0
+  local p col
+  printf -v p '%.0f' "$2" 2>/dev/null || return 0
+  if [ "$p" -ge 80 ]; then col=$RED; elif [ "$p" -ge 50 ]; then col=$YELLOW; else col=$GREEN; fi
+  [ -n "$right_plain" ] && { right_plain+=" · "; right+="${DIM} · ${RESET}"; }
+  right_plain+="$1 ${p}%"
+  right+="${DIM}$1${RESET} ${col}${p}%${RESET}"
+}
+add_stat ctx "$ctx"
+add_stat 5h  "$five"
+add_stat 7d  "$week"
+
+pad=$((WIDTH - ${#left_plain} - ${#right_plain}))
+[ "$pad" -lt 1 ] && pad=1
+printf '%b%*s%b' "$left" "$pad" '' "$right"

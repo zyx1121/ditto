@@ -9,7 +9,9 @@
 
 # ditto
 
-Rainbow-Ditto pixel-art statusline for [Claude Code](https://claude.com/claude-code). Each refresh rotates the color ring one hue step — 6 tiles per cycle.
+Minimal single-file statusline for [Claude Code](https://claude.com/claude-code):
+a Ditto pixel-art mascot that flips horizontally every refresh, plus one status
+row — model name on the left, context / 5-hour / 7-day usage on the right.
 
 ## Install
 
@@ -20,7 +22,8 @@ git clone https://github.com/zyx1121/ditto.git ~/.claude/ditto
 chmod +x ~/.claude/ditto/statusline.sh
 ```
 
-Then merge into `~/.claude/settings.json` (don't replace the file — add the `statusLine` key alongside existing keys):
+Then merge into `~/.claude/settings.json` (don't replace the file — add the
+`statusLine` key alongside existing keys):
 
 ```json
 {
@@ -33,42 +36,42 @@ Then merge into `~/.claude/settings.json` (don't replace the file — add the `s
 
 Start a new Claude Code session.
 
-Requires `jq` and a 256-color terminal. Terminal width ≥ 32 cols for one Ditto; 192+ cols fills the full 6-color rainbow.
+Requires `jq` and a 256-color terminal. Terminal width comes from `$COLUMNS`
+(Claude Code sets it). Width ≥ 20 cols shows one Ditto; every extra 16 cols
+adds another.
 
 ## How it works
 
-`ditto.ans` is a 16×14 pre-rendered sprite — 3KB of ANSI escape codes, plus an `\x1b[49m` prefix on every transparent cell so leading whitespace survives Claude Code's per-line strip. One-time render at build, zero CPU at runtime.
+Everything lives in `statusline.sh` — no assets, no config.
 
-`statusline.sh` tiles the sprite `N = terminal_width / 32` times. For each tile it picks a position on a 6-step hue ring (purple → red-pink → red-orange → orange-yellow → yellow-green → cyan-green) and rewrites the body / highlight color codes via bash builtin `${var//pattern/repl}` — no subprocess, microsecond cost.
+The original 16×14 full-block sprite is pre-folded at build time: each pair of
+vertically-stacked pixels becomes one half-block glyph (`▀`/`▄`/`█`) whose
+foreground/background carry the two pixels' exact colors — no averaging, no
+pixel loss — so one terminal cell is one pixel-column and the aspect ratio
+stays correct (16×7 cells per Ditto). Both frames (normal + mirrored) are
+embedded as `printf '%b'` strings; each refresh flips between them via a
+1-byte state file `~/.claude/.ditto_flip`.
 
-A 1-byte file `~/.claude/.ditto_offset` advances by 1 on every refresh. That's the marquee.
-
-## Customize
-
-Edit `statusline.sh`:
-
-| What | Where |
-|------|-------|
-| Reverse direction | `(OFFSET + 1)` → `(OFFSET + NCOL - 1)` |
-| Faster rotation | `+ 1` → `+ 2` (skip a hue per refresh) |
-| Different palette | `COLORS_M` / `COLORS_H` arrays (xterm 256-color codes) |
-| Ditto only, no status text | delete the status-text section + final `printf "%b" "$status"` |
-| Status text only, no Ditto | delete the `# --- Ditto mascot ---` block |
+The status row reads Claude Code's statusline JSON from stdin (one `jq` call):
+model display name on the left; context-window, 5-hour and 7-day usage
+percentages on the right, colored green / yellow / red at 50% / 80%.
 
 ## Uninstall
 
 Remove the `statusLine` key from `~/.claude/settings.json`, then:
 
 ```bash
-rm -rf ~/.claude/ditto ~/.claude/.ditto_offset
+rm -rf ~/.claude/ditto ~/.claude/.ditto_flip
 ```
 
 ## Notes for Claude Code automated install
 
 When asked to install this repo, the agent should:
 
-1. Clone to `~/.claude/ditto/` (or any stable path; the script self-locates via `BASH_SOURCE`).
-2. Read `~/.claude/settings.json` first. If a `statusLine` key already exists, confirm with the user before overwriting; otherwise merge the `statusLine` key alongside existing settings — do not replace the whole file.
+1. Clone to `~/.claude/ditto/` (or any stable path; the script is self-contained).
+2. Read `~/.claude/settings.json` first. If a `statusLine` key already exists,
+   confirm with the user before overwriting; otherwise merge the `statusLine`
+   key alongside existing settings — do not replace the whole file.
 3. Tell the user to start a new Claude Code session for the statusLine to take effect.
 
 ## License
