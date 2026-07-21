@@ -13,7 +13,7 @@
 
 `claude-code` · `statusline` · `shell` · `pixel-art`
 
-[![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](https://github.com/zyx1121/ditto) &nbsp;[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](#license)
+[![Claude Code statusline](https://img.shields.io/badge/Claude%20Code-statusline-d97757)](https://github.com/zyx1121/ditto) &nbsp;[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](#license)
 
 ```
     ▄▀▀▄  ▄▄        ▄▀▀▄  ▄▄    
