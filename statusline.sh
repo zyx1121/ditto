@@ -47,8 +47,13 @@ printf '%s' "$((1 - flip))" > "$FLIP_FILE" 2>/dev/null
 
 N=$((WIDTH / 16))            # each Ditto is 16 cells wide
 [ "$N" -lt 1 ] && N=1
+# Center the row: Claude Code indents the statusline by 2 cells, so split the
+# leftover columns evenly and subtract that indent from the left share.
+PAD=$(((COLS - 16 * N) / 2 - 2))
+[ "$PAD" -lt 0 ] && PAD=0
 for r in 0 1 2 3 4 5 6; do
   [ "$flip" = "1" ] && ln="${B[$r]}" || ln="${A[$r]}"
+  printf '\033[0m%*s' "$PAD" ''
   for ((i = 0; i < N; i++)); do printf '%b' "$ln"; done
   [ "$r" -lt 6 ] && printf '\n'
 done
