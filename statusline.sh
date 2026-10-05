@@ -50,8 +50,25 @@ N=$((WIDTH / 16))            # each Ditto is 16 cells wide
 for r in 0 1 2 3 4 5 6; do
   [ "$flip" = "1" ] && ln="${B[$r]}" || ln="${A[$r]}"
   for ((i = 0; i < N; i++)); do printf '%b' "$ln"; done
-  printf '\n'
+  [ "$r" -lt 6 ] && printf '\n'
 done
+
+# ---- tmux mode: publish the status row to the tmux window instead ----
+# With DITTO_TMUX=1 inside tmux, the row goes to the window option @cc_line
+# as a tmux format string (show it from status-right) and only the sprite is
+# printed here.
+if [ "$DITTO_TMUX" = "1" ] && [ -n "$TMUX_PANE" ] && command -v tmux >/dev/null 2>&1; then
+  line="#[fg=cyan]${model//#/##}#[default]"
+  for pair in "ctx:$ctx" "5h:$five" "7d:$week"; do
+    label=${pair%%:*}; raw=${pair#*:}
+    [ -n "$raw" ] || continue
+    printf -v p '%.0f' "$raw" 2>/dev/null || continue
+    if [ "$p" -ge 80 ]; then col=red; elif [ "$p" -ge 50 ]; then col=yellow; else col=green; fi
+    line+="#[dim] · ${label}#[nodim] #[fg=${col}]${p}%#[default]"
+  done
+  tmux set -w -t "$TMUX_PANE" @cc_line "$line" 2>/dev/null
+  exit 0
+fi
 
 # ---- status row: model (left) · ctx / 5h / 7d (right) ----
 RESET='\033[0m'; DIM='\033[2m'; CYAN='\033[0;36m'
@@ -74,6 +91,7 @@ add_stat ctx "$ctx"
 add_stat 5h  "$five"
 add_stat 7d  "$week"
 
+printf '\n'
 pad=$((WIDTH - ${#left_plain} - ${#right_plain}))
 [ "$pad" -lt 1 ] && pad=1
 printf '%b%*s%b' "$left" "$pad" '' "$right"

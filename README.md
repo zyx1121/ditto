@@ -66,6 +66,16 @@ Everything lives in `statusline.sh`: no assets, no config. The original 16×14 f
 
 Both frames (normal and mirrored) are embedded as `printf '%b'` strings; each refresh flips between them via a 1-byte state file at `~/.claude/.ditto_flip`. Terminal width comes from `$COLUMNS` (Claude Code sets it): width ≥ 20 cols shows one Ditto, every extra 16 cols adds another.
 
+## tmux mode
+
+Inside tmux, the status row can live in tmux's own status bar instead. Set `DITTO_TMUX=1` in the `env` block of `~/.claude/settings.json`; Ditto then prints only the sprite and writes the row to the window option `@cc_line` as a tmux format string. Show it from `status-right`, falling back to anything else for windows without Claude:
+
+```tmux
+set -g status-right '#{?@cc_line,#{@cc_line},%H:%M}'
+```
+
+To clear it when a session ends, add a `SessionEnd` hook that runs `tmux set -wu -t "$TMUX_PANE" @cc_line`.
+
 ## Uninstall
 
 Remove the `statusLine` key from `~/.claude/settings.json`, then:
