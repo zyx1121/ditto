@@ -50,7 +50,7 @@ Then merge into `~/.claude/settings.json` (add the `statusLine` key alongside ex
 }
 ```
 
-Start a new Claude Code session. Requires `jq` and a 256-color terminal.
+Start a new Claude Code session. Requires `jq` and a truecolor terminal.
 
 ## What it gives you
 
