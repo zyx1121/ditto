@@ -64,7 +64,7 @@ if [ "$DITTO_TMUX" = "1" ] && [ -n "$TMUX_PANE" ] && command -v tmux >/dev/null 
     [ -n "$raw" ] || continue
     printf -v p '%.0f' "$raw" 2>/dev/null || continue
     if [ "$p" -ge 80 ]; then col=red; elif [ "$p" -ge 50 ]; then col=yellow; else col=green; fi
-    line+="#[dim] · ${label}#[nodim] #[fg=${col}]${p}%#[default]"
+    line+="  #[dim]${label}#[nodim] #[fg=${col}]${p}%#[default]"
   done
   tmux set -w -t "$TMUX_PANE" @cc_line "$line" 2>/dev/null
   exit 0
