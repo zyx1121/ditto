@@ -75,23 +75,6 @@ if [ "$DITTO_TMUX" = "1" ] && [ -n "$TMUX_PANE" ] && command -v tmux >/dev/null 
   exit 0
 fi
 
-# ---- herdr mode: same idea, as plain text in a per-pane file ----
-# With DITTO_TMUX=1 inside a herdr pane (and not inside tmux), the row goes to
-# ~/.cache/ditto/herdr/$HERDR_PANE_ID for a tab_bar_right command entry to cat.
-# herdr strips styles from command output, so the row is plain text.
-if [ "$DITTO_TMUX" = "1" ] && [ -z "$TMUX_PANE" ] && [ -n "$HERDR_PANE_ID" ]; then
-  line="$model"
-  for pair in "ctx:$ctx" "5h:$five" "7d:$week"; do
-    label=${pair%%:*}; raw=${pair#*:}
-    [ -n "$raw" ] || continue
-    printf -v p '%.0f' "$raw" 2>/dev/null || continue
-    line+="  ${label} ${p}%"
-  done
-  dir="$HOME/.cache/ditto/herdr"
-  mkdir -p "$dir" 2>/dev/null && printf '%s\n' "$line" > "$dir/$HERDR_PANE_ID" 2>/dev/null
-  exit 0
-fi
-
 # ---- status row: model (left) · ctx / 5h / 7d (right) ----
 RESET='\033[0m'; DIM='\033[2m'; CYAN='\033[0;36m'
 GREEN='\033[32m'; YELLOW='\033[33m'; RED='\033[31m'
