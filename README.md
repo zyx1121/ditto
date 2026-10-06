@@ -76,19 +76,6 @@ set -g status-right '#{?@cc_line,#{@cc_line},%H:%M}'
 
 To clear it when a session ends, add a `SessionEnd` hook that runs `tmux set -wu -t "$TMUX_PANE" @cc_line`.
 
-### herdr
-
-Inside a [herdr](https://herdr.dev) pane (and not inside tmux), the same setting writes the row as plain text to `~/.cache/ditto/herdr/$HERDR_PANE_ID`. Show it with a `tab_bar_right` command entry that reads the file for the active pane:
-
-```toml
-[ui]
-tab_bar_right = [
-  { type = "command", command = "cat ~/.cache/ditto/herdr/$HERDR_ACTIVE_PANE_ID 2>/dev/null || date '+%H:%M'", interval_seconds = 2 },
-]
-```
-
-herdr strips colors from command output, so this row has no percentage colors. To clear it when a session ends, add a `SessionEnd` hook that runs `rm -f ~/.cache/ditto/herdr/$HERDR_PANE_ID`.
-
 ## Uninstall
 
 Remove the `statusLine` key from `~/.claude/settings.json`, then:
