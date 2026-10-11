@@ -1,45 +1,47 @@
-```
-██████╗ ██╗████████╗████████╗ ██████╗ 
-██╔══██╗██║╚══██╔══╝╚══██╔══╝██╔═══██╗
-██║  ██║██║   ██║      ██║   ██║   ██║
-██║  ██║██║   ██║      ██║   ██║   ██║
-██████╔╝██║   ██║      ██║   ╚██████╔╝
-╚═════╝ ╚═╝   ╚═╝      ╚═╝    ╚═════╝ 
-```
+<div align="center">
 
-# ditto
+<h1>ditto</h1>
 
-> A Claude Code statusline where a pixel-art Ditto flips itself every refresh, right next to the usage numbers you actually came for.
+<p><strong>A Claude Code statusline: a pixel-art Ditto that flips on each refresh, beside your usage numbers.</strong></p>
 
-`claude-code` · `statusline` · `shell` · `pixel-art`
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-statusline-d97757?style=flat-square)](https://docs.anthropic.com/en/docs/claude-code/statusline)
+[![Shell](https://img.shields.io/badge/bash-jq-4EAA25?style=flat-square&logo=gnubash&logoColor=white)](statusline.sh)
+[![License](https://img.shields.io/github/license/zyx1121/ditto?style=flat-square)](LICENSE)
 
-[![Claude Code statusline](https://img.shields.io/badge/Claude%20Code-statusline-d97757)](https://github.com/zyx1121/ditto) &nbsp;[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](#license)
+**English** | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md)
+
+</div>
 
 ```
-    ▄▀▀▄  ▄▄        ▄▀▀▄  ▄▄    
-  ▄▀▀█▀▀██▀▀█▀▀▄  ▄▀▀█▀▀██▀▀█▀▀▄
- ▄▀███▀███▀▀████ ▄▀███▀███▀▀████
- █████▀▀▀▀███▀█  █████▀▀▀▀███▀█ 
-███▀▀▀█████████████▀▀▀██████████
-██████████████▀▀██████████████▀▀
- ▀▀▀▀▀▀▀▀▀▀▀▀▀   ▀▀▀▀▀▀▀▀▀▀▀▀▀  
-Sonnet 5       ctx 42% · 5h 61% · 7d 12%
+        ▄▄  ▄▀▀▄        ▄▄  ▄▀▀▄
+      ▄▀▀█▀▀██▀▀█▀▀▄  ▄▀▀█▀▀██▀▀█▀▀▄
+     ▄▀███▀███▀▀████ ▄▀███▀███▀▀████
+     █████▀▀▀▀███▀█  █████▀▀▀▀███▀█
+    ███▀▀▀█████████████▀▀▀██████████
+    ██████████████▀▀██████████████▀▀
+     ▀▀▀▀▀▀▀▀▀▀▀▀▀   ▀▀▀▀▀▀▀▀▀▀▀▀▀
+Opus 5.5       ctx 42% · 5h 61% · 7d 12%
 ```
 
-<sub>Real output of `statusline.sh` at 44 columns (two tiled Dittos): model on the left, ctx / 5h / 7d usage on the right, in full color on a real terminal.</sub>
+The default Claude Code statusline is one line of plain text. ditto adds a Ditto that flips in place and colors the 3 numbers that tell you when a session runs dry. A quick look at a color is faster than reading 3 percentages. The output above is real, at 44 columns, with the colors removed.
 
-The stock Claude Code statusline is one flat line of text; this one is a Ditto flipping in place every refresh, next to the numbers that actually matter before a session runs dry. It started as a joke sprite and stayed because a colored glance beats reading three percentages cold. Everything lives in a single script: no assets to fetch, no config to maintain.
+## Features
 
-## Install
+- **Flips on each refresh**: a 16 by 7 cell sprite made of half-block glyphs, with no lost pixels.
+- **Shows usage**: the model on the left, and context, 5-hour and 7-day usage on the right.
+- **Colors by level**: green below 50%, yellow from 50%, red from 80%.
+- **Fills the width**: one more Ditto for every 16 extra columns.
+- **One file**: `statusline.sh` with one `jq` call. No assets, no config.
 
-Tell Claude Code: **"install the ditto statusline from this repo"**. Or do it manually:
+## Quick start
 
-```bash
+Tell Claude Code: "install the ditto statusline from this repo". Or install it yourself:
+
+```sh
 git clone https://github.com/zyx1121/ditto.git ~/.claude/ditto
-chmod +x ~/.claude/ditto/statusline.sh
 ```
 
-Then merge into `~/.claude/settings.json` (add the `statusLine` key alongside existing keys, don't replace the file):
+Add the `statusLine` key to `~/.claude/settings.json`, next to the keys that are there:
 
 ```json
 {
@@ -50,52 +52,54 @@ Then merge into `~/.claude/settings.json` (add the `statusLine` key alongside ex
 }
 ```
 
-Start a new Claude Code session. Requires `jq` and a truecolor terminal.
+Start a new Claude Code session. The Ditto appears under the prompt.
 
-## What it gives you
+## Usage
 
-- **Flips** a 16×7-cell Ditto sprite horizontally every refresh, using pre-folded half-block glyphs (no averaging, no pixel loss).
-- **Reads** Claude Code's statusline JSON from stdin with a single `jq` call.
-- **Shows** model name on the left, context-window / 5-hour / 7-day usage on the right.
-- **Colors** each usage stat green, yellow or red at the 50% / 80% thresholds.
-- **Tiles** extra Dittos across the width: one per each extra 16 columns of `$COLUMNS`.
-
-## How it works
-
-Everything lives in `statusline.sh`: no assets, no config. The original 16×14 full-block sprite is pre-folded at build time so each pair of vertically-stacked pixels becomes one half-block glyph (`▀`/`▄`/`█`) whose foreground/background carry the two pixels' exact colors. One terminal cell is one pixel column, so the aspect ratio stays correct at 16×7 cells per Ditto.
-
-Both frames (normal and mirrored) are embedded as `printf '%b'` strings; each refresh flips between them via a 1-byte state file at `~/.claude/.ditto_flip`. Terminal width comes from `$COLUMNS` (Claude Code sets it): width ≥ 20 cols shows one Ditto, every extra 16 cols adds another.
-
-## tmux mode
-
-Inside tmux, the status row can live in tmux's own status bar instead. Set `DITTO_TMUX=1` in the `env` block of `~/.claude/settings.json`; Ditto then prints only the sprite and writes the row to the window option `@cc_line` as a tmux format string. Show it from `status-right`, falling back to anything else for windows without Claude:
+**tmux mode**: put the status row in the tmux status bar. Set `DITTO_TMUX=1` in the `env` block of `~/.claude/settings.json`. ditto then prints only the sprite and writes the row to the window option `@cc_line`:
 
 ```tmux
 set -g status-right '#{?@cc_line,#{@cc_line},%H:%M}'
 ```
 
-To clear it when a session ends, add a `SessionEnd` hook that runs `tmux set -wu -t "$TMUX_PANE" @cc_line`.
+To clear the row when a session ends, add a `SessionEnd` hook that runs `tmux set -wu -t "$TMUX_PANE" @cc_line`.
 
-## Uninstall
+**Uninstall**: remove the `statusLine` key, then run `rm -rf ~/.claude/ditto ~/.claude/.ditto_flip`.
 
-Remove the `statusLine` key from `~/.claude/settings.json`, then:
+## How it works
 
-```bash
-rm -rf ~/.claude/ditto ~/.claude/.ditto_flip
+- The original sprite is 16 by 14 pixels. Each pair of stacked pixels becomes one half-block glyph (`▀`, `▄` or `█`), with the foreground and background in the 2 exact colors.
+- Both frames, normal and mirrored, are `printf '%b'` strings in the script. A 1-byte file, `~/.claude/.ditto_flip`, selects the frame for each refresh.
+- `$COLUMNS` from Claude Code sets the width.
+
+## Limits
+
+- Needs `bash`, `jq` and a truecolor terminal.
+- The usage numbers show only when Claude Code sends them in the statusline JSON.
+
+## For AI agents
+
+Facts for coding agents and LLM tools. The rules for changing the code are in [AGENTS.md](AGENTS.md).
+
+- **Summary**: Bash statusline for Claude Code with a flipping pixel-art Ditto and color-coded context, 5-hour and 7-day usage.
+- **Type**: cli
+- **Interfaces**: reads the Claude Code statusline JSON on stdin. Writes ANSI text to stdout, or the tmux window option `@cc_line` when `DITTO_TMUX=1`.
+- **Install**: clone to `~/.claude/ditto`, then merge `"statusLine": {"type": "command", "command": "bash ~/.claude/ditto/statusline.sh"}` into `~/.claude/settings.json`. Ask before you replace an existing `statusLine`.
+- **Run**: Claude Code runs it on each refresh. Manual test: `echo '<json>' | COLUMNS=44 bash statusline.sh`
+- **Verify**: the manual test prints 7 sprite rows and one status row
+- **Config**: env `DITTO_TMUX=1`. State file `~/.claude/.ditto_flip`.
+- **Secrets**: none
+- **Limits**: needs `jq` and a truecolor terminal
+
+## Development
+
+```sh
+echo '{"model":{"display_name":"Opus 5.5"},"context_window":{"used_percentage":42},"rate_limits":{"five_hour":{"used_percentage":61},"seven_day":{"used_percentage":12}}}' \
+  | env -u DITTO_TMUX COLUMNS=44 bash statusline.sh
 ```
 
-## Notes for Claude Code automated install
-
-When asked to install this repo, the agent should:
-
-1. Clone to `~/.claude/ditto/` (or any stable path; the script is self-contained).
-2. Read `~/.claude/settings.json` first. If a `statusLine` key already exists, confirm with the user before overwriting; otherwise merge the `statusLine` key alongside existing settings, don't replace the whole file.
-3. Tell the user to start a new Claude Code session for the statusLine to take effect.
-
-## Contributing
-
-Ground rules in [CONTRIBUTING.md](https://github.com/zyx1121/.github/blob/main/CONTRIBUTING.md).
+Unset `DITTO_TMUX` for this test. Otherwise the test writes to the `@cc_line` option of your tmux pane.
 
 ## License
 
-[MIT](LICENSE) · the one Pokemon that ships as a shell script
+[MIT](LICENSE)
