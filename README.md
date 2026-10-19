@@ -20,7 +20,7 @@
     ███▀▀▀█████████████▀▀▀██████████
     ██████████████▀▀██████████████▀▀
      ▀▀▀▀▀▀▀▀▀▀▀▀▀   ▀▀▀▀▀▀▀▀▀▀▀▀▀
-Opus 5.5       ctx 42% · 5h 61% · 7d 12%
+OPUS 5.5         CTX 42%  5H 61%  7D 12%
 ```
 
 The default Claude Code statusline is one line of plain text. ditto adds a Ditto that flips in place and colors the 3 numbers that tell you when a session runs dry. A quick look at a color is faster than reading 3 percentages. The output above is real, at 44 columns, with the colors removed.
@@ -29,7 +29,7 @@ The default Claude Code statusline is one line of plain text. ditto adds a Ditto
 
 - **Flips on each refresh**: a 16 by 7 cell sprite made of half-block glyphs, with no lost pixels.
 - **Shows usage**: the model on the left, and context, 5-hour and 7-day usage on the right.
-- **Colors by level**: green below 50%, yellow from 50%, red from 80%.
+- **Colors by level**: in the lavender palette of the sprite. A value turns yellow from 75% and red from 90%; only that value changes color.
 - **Fills the width**: one more Ditto for every 16 extra columns.
 - **One file**: `statusline.sh` with one `jq` call. No assets, no config.
 
