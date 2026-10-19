@@ -43,7 +43,7 @@ B=(
 
 FLIP_FILE="$HOME/.claude/.ditto_flip"
 flip=$(cat "$FLIP_FILE" 2>/dev/null); [ "$flip" = "1" ] || flip=0
-printf '%s' "$((1 - flip))" > "$FLIP_FILE" 2>/dev/null
+printf '%s' "$((1 - flip))" 2>/dev/null > "$FLIP_FILE"
 
 N=$((WIDTH / 16))            # each Ditto is 16 cells wide
 [ "$N" -lt 1 ] && N=1
@@ -58,43 +58,60 @@ for r in 0 1 2 3 4 5 6; do
   [ "$r" -lt 6 ] && printf '\n'
 done
 
+# ---- palette: the Claude Code band panels' colors ----
+# Titles in the Ditto body lavender, values in its highlight, labels in a darker
+# lavender. A value worth a look colors only that value: the dark theme's
+# warning from 75%, its error from 90%.
+TITLE='195;161;230'; TEXT='236;224;250'; LABEL='142;123;168'
+WARN='255;193;7'; ERROR='255;107;128'
+
+level() {   # $1 = whole percentage -> the RGB of its value
+  if [ "$1" -ge 90 ]; then echo "$ERROR"; elif [ "$1" -ge 75 ]; then echo "$WARN"; else echo "$TEXT"; fi
+}
+hex() {     # $1 = "r;g;b" -> "#rrggbb"
+  local r g b; IFS=';' read -r r g b <<<"$1"; printf '#%02x%02x%02x' "$r" "$g" "$b"
+}
+
+# Labels and the model are upper case, like the panel titles and labels.
+MODEL=$(tr '[:lower:]' '[:upper:]' <<<"$model")
+stats=()
+for pair in "CTX:$ctx" "5H:$five" "7D:$week"; do
+  raw=${pair#*:}
+  [ -n "$raw" ] || continue
+  printf -v p '%.0f' "$raw" 2>/dev/null || continue
+  stats+=("${pair%%:*}:$p")
+done
+
 # ---- tmux mode: publish the status row to the tmux window instead ----
 # With DITTO_TMUX=1 inside tmux, the row goes to the window option @cc_line
 # as a tmux format string (show it from status-right) and only the sprite is
 # printed here.
 if [ "$DITTO_TMUX" = "1" ] && [ -n "$TMUX_PANE" ] && command -v tmux >/dev/null 2>&1; then
-  line="#[fg=cyan]${model//#/##}#[default]"
-  for pair in "ctx:$ctx" "5h:$five" "7d:$week"; do
-    label=${pair%%:*}; raw=${pair#*:}
-    [ -n "$raw" ] || continue
-    printf -v p '%.0f' "$raw" 2>/dev/null || continue
-    if [ "$p" -ge 80 ]; then col=red; elif [ "$p" -ge 50 ]; then col=yellow; else col=green; fi
-    line+="  #[dim]${label}#[nodim] #[fg=${col}]${p}%#[default]"
+  line="#[fg=$(hex "$TITLE"),bold]${MODEL//#/##}#[default]"
+  for st in "${stats[@]}"; do
+    p=${st#*:}; col=$(level "$p")
+    [ "$col" = "$TEXT" ] && b=nobold || b=bold
+    line+="  #[fg=$(hex "$LABEL")]${st%%:*} #[fg=$(hex "$col"),$b]${p}%#[default]"
   done
   tmux set -w -t "$TMUX_PANE" @cc_line "$line" 2>/dev/null
   exit 0
 fi
 
-# ---- status row: model (left) · ctx / 5h / 7d (right) ----
-RESET='\033[0m'; DIM='\033[2m'; CYAN='\033[0;36m'
-GREEN='\033[32m'; YELLOW='\033[33m'; RED='\033[31m'
+# ---- status row: model (left), ctx / 5h / 7d (right) ----
+RESET='\033[0m'
+fg() { printf '\033[%s38;2;%sm' "$2" "$1"; }   # $1 = RGB, $2 = "1;" for bold
 
-left_plain="$model"
-left="${CYAN}${model}${RESET}"
+left_plain="$MODEL"
+left="$(fg "$TITLE" '1;')${MODEL}${RESET}"
 
 right_plain=""; right=""
-add_stat() {   # $1 = label, $2 = raw percentage (may be float or empty)
-  [ -n "$2" ] || return 0
-  local p col
-  printf -v p '%.0f' "$2" 2>/dev/null || return 0
-  if [ "$p" -ge 80 ]; then col=$RED; elif [ "$p" -ge 50 ]; then col=$YELLOW; else col=$GREEN; fi
-  [ -n "$right_plain" ] && { right_plain+=" · "; right+="${DIM} · ${RESET}"; }
-  right_plain+="$1 ${p}%"
-  right+="${DIM}$1${RESET} ${col}${p}%${RESET}"
-}
-add_stat ctx "$ctx"
-add_stat 5h  "$five"
-add_stat 7d  "$week"
+for st in "${stats[@]}"; do
+  label=${st%%:*}; p=${st#*:}; col=$(level "$p")
+  [ "$col" = "$TEXT" ] && b='' || b='1;'
+  [ -n "$right_plain" ] && { right_plain+="  "; right+="  "; }
+  right_plain+="$label ${p}%"
+  right+="$(fg "$LABEL")${label}${RESET} $(fg "$col" "$b")${p}%${RESET}"
+done
 
 printf '\n'
 pad=$((WIDTH - ${#left_plain} - ${#right_plain}))
