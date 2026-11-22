@@ -11,11 +11,12 @@
 input=$(cat)
 
 # ---- data (one jq call) ----
-IFS=$'\t' read -r model ctx five week <<<"$(jq -r '
+IFS=$'\t' read -r model ctx five week name <<<"$(jq -r '
   [(.model.display_name // ""),
    (.context_window.used_percentage // ""),
    (.rate_limits.five_hour.used_percentage // ""),
-   (.rate_limits.seven_day.used_percentage // "")] | @tsv' <<<"$input" 2>/dev/null)"
+   (.rate_limits.seven_day.used_percentage // ""),
+   (.session_name // "")] | @tsv' <<<"$input" 2>/dev/null)"
 
 COLS=${COLUMNS:-80}
 WIDTH=$((COLS - 4))          # Claude Code reserves ~4 cols of right margin
@@ -85,8 +86,10 @@ done
 # ---- tmux mode: publish the status row to the tmux window instead ----
 # With DITTO_TMUX=1 inside tmux, the row goes to the window option @cc_line
 # as a tmux format string (show it from status-right) and only the sprite is
-# printed here.
+# printed here. The session name, which Claude Code sets from --name,
+# /rename or its own generated title, goes to @cc_title for the tab.
 if [ "$DITTO_TMUX" = "1" ] && [ -n "$TMUX_PANE" ] && command -v tmux >/dev/null 2>&1; then
+  [ -n "$name" ] && tmux set -w -t "$TMUX_PANE" @cc_title "$name" 2>/dev/null
   line="#[fg=$(hex "$TITLE"),bold]${MODEL//#/##}#[default]"
   for st in "${stats[@]}"; do
     p=${st#*:}; col=$(level "$p")
