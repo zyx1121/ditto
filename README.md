@@ -62,6 +62,8 @@ Start a new Claude Code session. The Ditto appears under the prompt.
 set -g status-right '#{?@cc_line,#{@cc_line},%H:%M}'
 ```
 
+It also writes the session name to `@cc_title`, so a window name can show it, for example `#{?@cc_title,#{@cc_title},#I}`. The name is the one you set with `--name` or `/rename`, or else the title Claude Code generates from your first prompt.
+
 To clear the row when a session ends, add a `SessionEnd` hook that runs `tmux set -wu -t "$TMUX_PANE" @cc_line`.
 
 **Uninstall**: remove the `statusLine` key, then run `rm -rf ~/.claude/ditto ~/.claude/.ditto_flip`.
@@ -83,7 +85,7 @@ Facts for coding agents and LLM tools. The rules for changing the code are in [A
 
 - **Summary**: Bash statusline for Claude Code with a flipping pixel-art Ditto and color-coded context, 5-hour and 7-day usage.
 - **Type**: cli
-- **Interfaces**: reads the Claude Code statusline JSON on stdin. Writes ANSI text to stdout, or the tmux window option `@cc_line` when `DITTO_TMUX=1`.
+- **Interfaces**: reads the Claude Code statusline JSON on stdin. Writes ANSI text to stdout, or the tmux window options `@cc_line` and `@cc_title` when `DITTO_TMUX=1`.
 - **Install**: clone to `~/.claude/ditto`, then merge `"statusLine": {"type": "command", "command": "bash ~/.claude/ditto/statusline.sh"}` into `~/.claude/settings.json`. Ask before you replace an existing `statusLine`.
 - **Run**: Claude Code runs it on each refresh. Manual test: `echo '<json>' | COLUMNS=44 bash statusline.sh`
 - **Verify**: the manual test prints 7 sprite rows and one status row
