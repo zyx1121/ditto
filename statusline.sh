@@ -11,12 +11,14 @@
 input=$(cat)
 
 # ---- data (one jq call) ----
-IFS=$'\t' read -r model ctx five week name <<<"$(jq -r '
+# Fields are joined with US (\x1f), not tab: tab is IFS whitespace, so an
+# empty field (no 5h usage yet) would collapse and shift the session name.
+IFS=$'\x1f' read -r model ctx five week name <<<"$(jq -r '
   [(.model.display_name // ""),
    (.context_window.used_percentage // ""),
    (.rate_limits.five_hour.used_percentage // ""),
    (.rate_limits.seven_day.used_percentage // ""),
-   (.session_name // "")] | @tsv' <<<"$input" 2>/dev/null)"
+   (.session_name // "")] | map(tostring) | join("\u001f")' <<<"$input" 2>/dev/null)"
 
 COLS=${COLUMNS:-80}
 WIDTH=$((COLS - 4))          # Claude Code reserves ~4 cols of right margin
