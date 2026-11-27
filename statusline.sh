@@ -13,12 +13,14 @@ input=$(cat)
 # ---- data (one jq call) ----
 # Fields are joined with US (\x1f), not tab: tab is IFS whitespace, so an
 # empty field (no 5h usage yet) would collapse and shift the session name.
-IFS=$'\x1f' read -r model ctx five week name <<<"$(jq -r '
+# No here-strings (<<<) anywhere: Homebrew bash 5.3 on macOS 27 hangs on a
+# here-string of 512 bytes or more, and the statusline JSON is larger.
+IFS=$'\x1f' read -r model ctx five week name < <(printf '%s' "$input" | jq -r '
   [(.model.display_name // ""),
    (.context_window.used_percentage // ""),
    (.rate_limits.five_hour.used_percentage // ""),
    (.rate_limits.seven_day.used_percentage // ""),
-   (.session_name // "")] | map(tostring) | join("\u001f")' <<<"$input" 2>/dev/null)"
+   (.session_name // "")] | map(tostring) | join("\u001f")' 2>/dev/null)
 
 COLS=${COLUMNS:-80}
 WIDTH=$((COLS - 4))          # Claude Code reserves ~4 cols of right margin
@@ -72,11 +74,11 @@ level() {   # $1 = whole percentage -> the RGB of its value
   if [ "$1" -ge 90 ]; then echo "$ERROR"; elif [ "$1" -ge 75 ]; then echo "$WARN"; else echo "$TEXT"; fi
 }
 hex() {     # $1 = "r;g;b" -> "#rrggbb"
-  local r g b; IFS=';' read -r r g b <<<"$1"; printf '#%02x%02x%02x' "$r" "$g" "$b"
+  local r g b; IFS=';' read -r r g b < <(printf '%s\n' "$1"); printf '#%02x%02x%02x' "$r" "$g" "$b"
 }
 
 # Labels and the model are upper case, like the panel titles and labels.
-MODEL=$(tr '[:lower:]' '[:upper:]' <<<"$model")
+MODEL=$(printf '%s' "$model" | tr '[:lower:]' '[:upper:]')
 stats=()
 for pair in "CTX:$ctx" "5H:$five" "7D:$week"; do
   raw=${pair#*:}
